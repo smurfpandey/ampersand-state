@@ -22,9 +22,38 @@ var arrayNext = require('array-next');
 var changeRE = /^change:/;
 var noop = function () {};
 
+function getNested(obj, path, return_exists) {
+    var separator = Base.keyPathSeparator;
+
+    var fields = path ? path.split(separator) : [];
+    var result = obj;
+    return_exists || (return_exists === false);
+    for (var i = 0, n = fields.length; i < n; i++) {
+		if (return_exists && !has(result, fields[i])) {
+			return false;
+		}
+		result = result[fields[i]];
+
+		if (result == null && i < n - 1) {
+			result = {};
+		}
+
+		if (typeof result === 'undefined') {
+			if (return_exists) {
+				return true;
+			}
+			return result;
+		}
+	}
+	if (return_exists) {
+		return true;
+	}
+	return result;
+}
+
 function Base(attrs, options) {
     options || (options = {});
-    this.cid || (this.cid = uniqueId('state'));
+    this.cid || (this.cid = uniqueId(this.cidPrefix));
     this._events = {};
     this._values = {};
     this._eventBubblingHandlerCache = {};
@@ -48,6 +77,10 @@ assign(Base.prototype, Events, {
     extraProperties: 'ignore',
 
     idAttribute: 'id',
+
+    cidPrefix: 'state',
+
+    keyPathSeparator: '.',
 
     namespaceAttribute: 'namespace',
 
@@ -281,7 +314,7 @@ assign(Base.prototype, Events, {
     },
 
     get: function (attr) {
-        return this[attr];
+        return getNested(this, attr);
     },
 
     // Toggle boolean properties or properties that have a `values`
